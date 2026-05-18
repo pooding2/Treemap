@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>🌳 나무지도</title>
+<meta name="theme-color" content="#0f1f0f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="나무지도">
+<link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
@@ -11,12 +17,22 @@
 :root{--forest:#0f1f0f;--moss:#1e3a1e;--leaf:#3d6e4a;--sage:#6fa87a;--mist:#c2d9c8;--cream:#f4efe6;--gold:#c9a84c;--shadow:rgba(5,15,5,0.6);}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Noto Sans KR',sans-serif;background:var(--forest);color:var(--cream);height:100vh;overflow:hidden;display:flex;flex-direction:column;}
-.header{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:linear-gradient(135deg,#0a150a,#1a301a);border-bottom:1px solid rgba(61,110,74,0.5);flex-shrink:0;}
-.logo{font-family:'Nanum Myeongjo',serif;font-size:20px;font-weight:800;color:var(--mist);}
+.header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:linear-gradient(135deg,#0a150a,#1a301a);border-bottom:1px solid rgba(61,110,74,0.5);flex-shrink:0;gap:12px;}
+.logo{font-family:'Nanum Myeongjo',serif;font-size:18px;font-weight:800;color:var(--mist);white-space:nowrap;}
 .logo span{color:var(--gold);}
-.header-stats{display:flex;gap:16px;}
+.search-wrap{flex:1;position:relative;max-width:400px;}
+.search-input{width:100%;background:rgba(255,255,255,0.08);border:1px solid rgba(111,168,122,0.3);border-radius:20px;padding:7px 36px 7px 14px;color:var(--cream);font-family:'Noto Sans KR',sans-serif;font-size:13px;outline:none;transition:border-color 0.2s;}
+.search-input:focus{border-color:var(--sage);background:rgba(255,255,255,0.12);}
+.search-input::placeholder{color:var(--sage);opacity:0.7;}
+.search-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--sage);cursor:pointer;font-size:16px;padding:0;}
+.search-results{position:absolute;top:calc(100% + 6px);left:0;right:0;background:#1a3020;border:1px solid rgba(61,110,74,0.5);border-radius:12px;z-index:2000;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
+.search-result-item{padding:10px 14px;font-size:13px;cursor:pointer;border-bottom:1px solid rgba(61,110,74,0.15);color:var(--mist);transition:background 0.15s;}
+.search-result-item:last-child{border-bottom:none;}
+.search-result-item:hover{background:rgba(61,110,74,0.2);}
+.search-result-sub{font-size:11px;color:var(--sage);margin-top:2px;}
+.header-stats{display:flex;gap:12px;flex-shrink:0;}
 .stat{text-align:center;}
-.stat-n{font-size:17px;font-weight:700;color:var(--gold);display:block;line-height:1;}
+.stat-n{font-size:16px;font-weight:700;color:var(--gold);display:block;line-height:1;}
 .stat-l{font-size:10px;color:var(--sage);}
 #map{flex:1;width:100%;}
 .fab-wrap{position:fixed;bottom:24px;right:20px;display:flex;flex-direction:column;align-items:flex-end;gap:10px;z-index:1000;}
@@ -88,6 +104,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--forest);color:var(--
 <body>
 <div class="header">
   <div class="logo">🌳 나무<span>지도</span></div>
+  <div class="search-wrap">
+    <input class="search-input" id="search-input" placeholder="🔍 주소 검색..." onkeydown="if(event.key==='Enter')doSearch()" oninput="onSearchInput()">
+    <button class="search-btn" onclick="doSearch()">🔍</button>
+    <div class="search-results" id="search-results" style="display:none"></div>
+  </div>
   <div class="header-stats">
     <div class="stat"><span class="stat-n" id="stat-trees">0</span><span class="stat-l">나무</span></div>
     <div class="stat"><span class="stat-n" id="stat-species">0</span><span class="stat-l">수종</span></div>
@@ -170,7 +191,6 @@ const db=getFirestore(initializeApp({
 
 const map=L.map('map').setView([36.5,127.8],7);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
-
 document.getElementById('input-date').value=new Date().toISOString().split('T')[0];
 
 let addMode=false,pendingLatLng=null,trees=[],currentTreeId=null;
@@ -208,6 +228,42 @@ function updateStats(){
   document.getElementById('stat-records').textContent=trees.reduce((s,t)=>s+(t.updates?t.updates.length:1),0);
 }
 
+// 주소 검색
+let searchTimer;
+window.onSearchInput=function(){
+  clearTimeout(searchTimer);
+  const val=document.getElementById('search-input').value.trim();
+  if(val.length<2){document.getElementById('search-results').style.display='none';return;}
+  searchTimer=setTimeout(()=>doSearch(),600);
+};
+
+window.doSearch=async function(){
+  const val=document.getElementById('search-input').value.trim();
+  if(!val)return;
+  try{
+    const res=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}&format=json&limit=5&accept-language=ko&countrycodes=kr`);
+    const data=await res.json();
+    const box=document.getElementById('search-results');
+    if(!data.length){box.innerHTML='<div class="search-result-item">검색 결과가 없어요</div>';box.style.display='block';return;}
+    box.innerHTML=data.map((d,i)=>`
+      <div class="search-result-item" onclick="goToPlace(${d.lat},${d.lon})">
+        <div>${d.display_name.split(',')[0]}</div>
+        <div class="search-result-sub">${d.display_name.split(',').slice(1,3).join(',')}</div>
+      </div>`).join('');
+    box.style.display='block';
+  }catch(e){console.error(e);}
+};
+
+window.goToPlace=function(lat,lon){
+  map.setView([lat,lon],16);
+  document.getElementById('search-results').style.display='none';
+  document.getElementById('search-input').value='';
+};
+
+document.addEventListener('click',(e)=>{
+  if(!e.target.closest('.search-wrap'))document.getElementById('search-results').style.display='none';
+});
+
 window.toggleAddMode=function(force){
   addMode=force!==undefined?force:!addMode;
   const btn=document.getElementById('fab-btn'),hint=document.getElementById('fab-hint');
@@ -232,23 +288,13 @@ window.submitTree=async function(){
   if(!name){showToast('⚠️ 나무 이름을 입력해주세요');return;}
   if(!pendingLatLng){showToast('⚠️ 지도에서 위치를 먼저 선택해주세요');return;}
   try{
-    await addDoc(collection(db,'trees'),{
-      name,species,plantedDate:date,note,photo,
-      lat:pendingLatLng.lat,lng:pendingLatLng.lng,
-      createdAt:new Date().toISOString(),
-      updates:[{date,height:0,note:note||'심은 날!',photo}]
-    });
+    await addDoc(collection(db,'trees'),{name,species,plantedDate:date,note,photo,lat:pendingLatLng.lat,lng:pendingLatLng.lng,createdAt:new Date().toISOString(),updates:[{date,height:0,note:note||'심은 날!',photo}]});
     window.closeAddModal();showToast('🌱 나무가 등록되었습니다!');
   }catch(e){console.error(e);showToast('❌ 저장 중 오류가 발생했어요');}
 };
 
-window.openDetailModal=function(id){
-  currentTreeId=id;renderDetail(id);
-  document.getElementById('detail-modal').style.display='flex';
-};
-window.closeDetailModal=function(){
-  document.getElementById('detail-modal').style.display='none';currentTreeId=null;
-};
+window.openDetailModal=function(id){currentTreeId=id;renderDetail(id);document.getElementById('detail-modal').style.display='flex';};
+window.closeDetailModal=function(){document.getElementById('detail-modal').style.display='none';currentTreeId=null;};
 
 window.renderDetail=function(id){
   const tree=trees.find(t=>t.id===id);if(!tree)return;
@@ -307,6 +353,11 @@ function showToast(msg){
   if(!el){el=document.createElement('div');el.id='toast-el';el.className='toast';document.body.appendChild(el);}
   el.textContent=msg;el.style.display='block';el.style.animation='none';void el.offsetWidth;el.style.animation='toastIn 0.3s ease';
   toastTimer=setTimeout(()=>{if(el)el.style.display='none';},2500);
+}
+
+// PWA 서비스 워커
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/Treemap/sw.js').catch(()=>{});
 }
 </script>
 </body>
