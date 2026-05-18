@@ -1,0 +1,27 @@
+{
+  "name": "나무지도",
+  "short_name": "나무지도",
+  "description": "내가 심은 나무를 지도에 기록해요",
+  "start_url": "/Treemap/",
+  "display": "standalone",
+  "background_color": "#0f1f0f",
+  "theme_color": "#0f1f0f",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn.jsdelivr.net/npm/twemoji@14/assets/72x72/1f333.png",
+      "sizes": "72x72",
+      "type": "image/png"
+    },
+    {
+      "src": "https://cdn.jsdelivr.net/npm/twemoji@14/assets/72x72/1f333.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://cdn.jsdelivr.net/npm/twemoji@14/assets/72x72/1f333.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
