@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>🌳 나무지도</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Noto+Sans+KR:wght@300;400;500;600&display=swap');
 :root{--forest:#0f1f0f;--moss:#1e3a1e;--leaf:#3d6e4a;--sage:#6fa87a;--mist:#c2d9c8;--cream:#f4efe6;--gold:#c9a84c;--shadow:rgba(5,15,5,0.6);}
@@ -17,14 +19,14 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--forest);color:var(--
 .stat-n{font-size:17px;font-weight:700;color:var(--gold);display:block;line-height:1;}
 .stat-l{font-size:10px;color:var(--sage);}
 #map{flex:1;width:100%;}
-.fab-wrap{position:fixed;bottom:24px;right:20px;display:flex;flex-direction:column;align-items:flex-end;gap:10px;z-index:200;}
+.fab-wrap{position:fixed;bottom:24px;right:20px;display:flex;flex-direction:column;align-items:flex-end;gap:10px;z-index:1000;}
 .fab{width:54px;height:54px;border-radius:50%;border:none;cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px var(--shadow);transition:transform 0.2s;}
 .fab:hover{transform:scale(1.1);}
 .fab-main{background:linear-gradient(135deg,var(--leaf),#2a5a35);color:white;width:58px;height:58px;font-size:26px;border:2px solid var(--sage);}
 .fab-main.active{background:linear-gradient(135deg,#8b2020,#5a1515);border-color:#e07070;}
 .fab-hint{background:rgba(15,31,15,0.92);border:1px solid var(--leaf);border-radius:20px;padding:7px 14px;font-size:12px;color:var(--sage);white-space:nowrap;backdrop-filter:blur(8px);}
 .fab-hint.active{background:rgba(80,20,20,0.92);border-color:#e07070;color:#f09090;}
-.overlay{position:fixed;inset:0;background:rgba(5,15,5,0.85);backdrop-filter:blur(6px);z-index:300;display:flex;align-items:flex-end;animation:fadeIn 0.2s ease;}
+.overlay{position:fixed;inset:0;background:rgba(5,15,5,0.85);backdrop-filter:blur(6px);z-index:2000;display:flex;align-items:flex-end;animation:fadeIn 0.2s ease;}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .modal{background:linear-gradient(160deg,#1e3a1e,#0f1f0f);border:1px solid rgba(61,110,74,0.6);border-radius:22px 22px 0 0;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 -10px 50px rgba(0,0,0,0.7);animation:slideUp 0.3s cubic-bezier(0.34,1.2,0.64,1);}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
@@ -76,23 +78,14 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--forest);color:var(--
 .add-update-btn{display:flex;align-items:center;gap:8px;background:rgba(61,110,74,0.12);border:1px dashed rgba(111,168,122,0.35);border-radius:12px;padding:12px 16px;color:var(--sage);cursor:pointer;font-size:13px;font-family:'Noto Sans KR',sans-serif;width:100%;transition:background 0.2s;margin-top:8px;}
 .add-update-btn:hover{background:rgba(61,110,74,0.22);}
 .update-form{background:rgba(255,255,255,0.04);border-radius:14px;padding:15px;border:1px solid rgba(111,168,122,0.18);margin-top:8px;}
-.toast{position:fixed;top:72px;left:50%;transform:translateX(-50%);background:var(--leaf);color:white;padding:9px 20px;border-radius:20px;font-size:13px;font-weight:500;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,0.4);white-space:nowrap;animation:toastIn 0.3s ease;pointer-events:none;}
+.toast{position:fixed;top:72px;left:50%;transform:translateX(-50%);background:var(--leaf);color:white;padding:9px 20px;border-radius:20px;font-size:13px;font-weight:500;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.4);white-space:nowrap;animation:toastIn 0.3s ease;pointer-events:none;}
 @keyframes toastIn{from{transform:translateX(-50%) translateY(-12px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
-.loading{position:fixed;inset:0;background:var(--forest);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:16px;}
-.loading-tree{font-size:60px;animation:sway 2s ease-in-out infinite;}
-@keyframes sway{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)}}
-.loading-text{font-family:'Nanum Myeongjo',serif;font-size:18px;color:var(--mist);}
-.loading-sub{font-size:13px;color:var(--sage);}
+.leaflet-container{background:#1a2e1a;}
 ::-webkit-scrollbar{width:3px;}
 ::-webkit-scrollbar-thumb{background:var(--leaf);border-radius:2px;}
 </style>
 </head>
 <body>
-<div class="loading" id="loading">
-  <div class="loading-tree">🌳</div>
-  <div class="loading-text">나무지도</div>
-  <div class="loading-sub">지도를 불러오는 중...</div>
-</div>
 <div class="header">
   <div class="logo">🌳 나무<span>지도</span></div>
   <div class="header-stats">
@@ -143,7 +136,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--forest);color:var(--
       <div class="form-group">
         <label class="form-label">사진</label>
         <div class="photo-upload">
-          <input type="file" accept="image/*" id="add-photo-input" onchange="previewPhoto(this,'add-photo-preview','add-photo-placeholder')">
+          <input type="file" accept="image/*" onchange="previewPhoto(this,'add-photo-preview','add-photo-placeholder')">
           <img id="add-photo-preview" class="photo-preview" style="display:none">
           <div id="add-photo-placeholder"><div class="upload-icon">📷</div><div class="upload-text">사진을 업로드하세요</div></div>
         </div>
@@ -163,7 +156,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--forest);color:var(--
   </div>
 </div>
 
-<!-- Firebase 먼저 로드 -->
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import{getFirestore,collection,addDoc,updateDoc,doc,onSnapshot,orderBy,query}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -175,77 +167,62 @@ const db=getFirestore(initializeApp({
   messagingSenderId:"439504864862",
   appId:"1:439504864862:web:ae1379f4c22c147c6b56cf"
 }));
-window._db=db;
-window._f={collection,addDoc,updateDoc,doc,onSnapshot,orderBy,query};
-window._fbReady=true;
-window.dispatchEvent(new Event('fbReady'));
-</script>
 
-<!-- 카카오맵 콜백으로 초기화 -->
-<script>
-window.initMap=function(){
-  window._kakaoReady=true;
-  tryInit();
-};
-window.addEventListener('fbReady',()=>{
-  window._fbReadyFired=true;
-  tryInit();
-});
+const map=L.map('map').setView([36.5,127.8],7);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
 
-function tryInit(){
-  if(!window._kakaoReady||!window._fbReadyFired)return;
-  const map=new kakao.maps.Map(document.getElementById('map'),{center:new kakao.maps.LatLng(36.5,127.8),level:8});
-  window._map=map;
-  document.getElementById('input-date').value=new Date().toISOString().split('T')[0];
-  kakao.maps.event.addListener(map,'click',(e)=>{
-    if(!window._addMode)return;
-    window._pending=e.latLng;
-    toggleAddMode(false);
-    document.getElementById('add-modal').style.display='flex';
-  });
-  listenTrees();
-  document.getElementById('loading').style.display='none';
-}
+document.getElementById('input-date').value=new Date().toISOString().split('T')[0];
 
-let trees=[],currentTreeId=null,markers={};
+let addMode=false,pendingLatLng=null,trees=[],currentTreeId=null;
 const EMOJI={"소나무":"🌲","잣나무":"🌲","편백나무":"🌲","벚나무":"🌸","단풍나무":"🍁","은행나무":"🍂","느티나무":"🌳","메타세쿼이아":"🌲","자작나무":"🌿","기타":"🌱"};
 
-function listenTrees(){
-  const q=window._f.query(window._f.collection(window._db,'trees'),window._f.orderBy('createdAt','desc'));
-  window._f.onSnapshot(q,(snap)=>{
-    trees=[];snap.forEach(d=>trees.push({id:d.id,...d.data()}));
-    renderMarkers();updateStats();
-  });
-}
+map.on('click',(e)=>{
+  if(!addMode)return;
+  pendingLatLng=e.latlng;
+  toggleAddMode(false);
+  document.getElementById('add-modal').style.display='flex';
+});
+
+const q=query(collection(db,'trees'),orderBy('createdAt','desc'));
+onSnapshot(q,(snap)=>{
+  trees=[];snap.forEach(d=>trees.push({id:d.id,...d.data()}));
+  renderMarkers();updateStats();
+});
+
+let markerLayer=L.layerGroup().addTo(map);
 function renderMarkers(){
-  Object.values(markers).forEach(m=>m.setMap(null));markers={};
+  markerLayer.clearLayers();
   trees.forEach(tree=>{
-    const div=document.createElement('div');
-    div.innerHTML=EMOJI[tree.species]||'🌱';
-    div.style.cssText='background:linear-gradient(135deg,#1e3a1e,#0f1f0f);border:2px solid #3d6e4a;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 3px 12px rgba(0,0,0,0.5);cursor:pointer;';
-    div.onclick=()=>openDetailModal(tree.id);
-    const ov=new kakao.maps.CustomOverlay({position:new kakao.maps.LatLng(tree.lat,tree.lng),content:div,yAnchor:1});
-    ov.setMap(window._map);markers[tree.id]=ov;
+    const emoji=EMOJI[tree.species]||'🌱';
+    const icon=L.divIcon({
+      html:`<div style="background:linear-gradient(135deg,#1e3a1e,#0f1f0f);border:2px solid #3d6e4a;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 3px 12px rgba(0,0,0,0.5);cursor:pointer;">${emoji}</div>`,
+      className:'',iconSize:[40,40],iconAnchor:[20,40]
+    });
+    L.marker([tree.lat,tree.lng],{icon}).addTo(markerLayer).on('click',()=>openDetailModal(tree.id));
   });
 }
+
 function updateStats(){
   document.getElementById('stat-trees').textContent=trees.length;
   document.getElementById('stat-species').textContent=new Set(trees.map(t=>t.species)).size;
   document.getElementById('stat-records').textContent=trees.reduce((s,t)=>s+(t.updates?t.updates.length:1),0);
 }
-function toggleAddMode(force){
-  window._addMode=force!==undefined?force:!window._addMode;
+
+window.toggleAddMode=function(force){
+  addMode=force!==undefined?force:!addMode;
   const btn=document.getElementById('fab-btn'),hint=document.getElementById('fab-hint');
-  if(window._addMode){btn.textContent='✕';btn.classList.add('active');hint.textContent='🎯 지도에서 위치를 클릭하세요';hint.classList.add('active');document.getElementById('map').style.cursor='crosshair';}
+  if(addMode){btn.textContent='✕';btn.classList.add('active');hint.textContent='🎯 지도에서 위치를 클릭하세요';hint.classList.add('active');document.getElementById('map').style.cursor='crosshair';}
   else{btn.textContent='🌱';btn.classList.remove('active');hint.textContent='🌱 버튼을 눌러 나무 추가';hint.classList.remove('active');document.getElementById('map').style.cursor='';}
-}
-function closeAddModal(){
-  document.getElementById('add-modal').style.display='none';window._pending=null;
+};
+
+window.closeAddModal=function(){
+  document.getElementById('add-modal').style.display='none';pendingLatLng=null;
   document.getElementById('input-name').value='';document.getElementById('input-note').value='';
   document.getElementById('add-photo-preview').style.display='none';
   document.getElementById('add-photo-placeholder').style.display='block';
-}
-async function submitTree(){
+};
+
+window.submitTree=async function(){
   const name=document.getElementById('input-name').value.trim();
   const species=document.getElementById('input-species').value;
   const date=document.getElementById('input-date').value;
@@ -253,20 +230,27 @@ async function submitTree(){
   const prev=document.getElementById('add-photo-preview');
   const photo=prev.style.display!=='none'?prev.src:null;
   if(!name){showToast('⚠️ 나무 이름을 입력해주세요');return;}
-  if(!window._pending){showToast('⚠️ 지도에서 위치를 먼저 선택해주세요');return;}
+  if(!pendingLatLng){showToast('⚠️ 지도에서 위치를 먼저 선택해주세요');return;}
   try{
-    await window._f.addDoc(window._f.collection(window._db,'trees'),{
+    await addDoc(collection(db,'trees'),{
       name,species,plantedDate:date,note,photo,
-      lat:window._pending.getLat(),lng:window._pending.getLng(),
+      lat:pendingLatLng.lat,lng:pendingLatLng.lng,
       createdAt:new Date().toISOString(),
       updates:[{date,height:0,note:note||'심은 날!',photo}]
     });
-    closeAddModal();showToast('🌱 나무가 등록되었습니다!');
+    window.closeAddModal();showToast('🌱 나무가 등록되었습니다!');
   }catch(e){console.error(e);showToast('❌ 저장 중 오류가 발생했어요');}
-}
-function openDetailModal(id){currentTreeId=id;renderDetail(id);document.getElementById('detail-modal').style.display='flex';}
-function closeDetailModal(){document.getElementById('detail-modal').style.display='none';currentTreeId=null;}
-function renderDetail(id){
+};
+
+window.openDetailModal=function(id){
+  currentTreeId=id;renderDetail(id);
+  document.getElementById('detail-modal').style.display='flex';
+};
+window.closeDetailModal=function(){
+  document.getElementById('detail-modal').style.display='none';currentTreeId=null;
+};
+
+window.renderDetail=function(id){
   const tree=trees.find(t=>t.id===id);if(!tree)return;
   const updates=tree.updates||[];const latest=updates[updates.length-1];
   const h=latest?latest.height:0;const pct=Math.min((h/10)*100,100);
@@ -283,15 +267,18 @@ function renderDetail(id){
     <div class="section-title">📅 성장 기록</div>
     <div class="timeline">${tl}</div>
     <div id="update-form-wrap"><button class="add-update-btn" onclick="showUpdateForm()">＋ 성장 기록 추가하기</button></div>`;
-}
-function showUpdateForm(){
+};
+
+window.showUpdateForm=function(){
   document.getElementById('update-form-wrap').innerHTML=`<div class="update-form">
     <div class="form-row"><div class="form-group"><label class="form-label">현재 키 (m)</label><input class="form-input" id="upd-height" type="number" step="0.1" min="0" placeholder="예: 1.5"></div></div>
     <div class="form-group"><label class="form-label">한 마디</label><input class="form-input" id="upd-note" placeholder="오늘 나무 상태는?"></div>
     <div class="form-group"><label class="form-label">사진</label><div class="photo-upload"><input type="file" accept="image/*" onchange="previewPhoto(this,'upd-photo-preview','upd-photo-placeholder')"><img id="upd-photo-preview" class="photo-preview" style="display:none"><div id="upd-photo-placeholder"><div class="upload-icon">📷</div><div class="upload-text">사진 추가</div></div></div></div>
     <div class="btn-row"><button class="btn btn-primary" onclick="submitUpdate()">저장</button><button class="btn btn-secondary" onclick="renderDetail(currentTreeId)">취소</button></div>
-  </div>`;}
-async function submitUpdate(){
+  </div>`;
+};
+
+window.submitUpdate=async function(){
   const h=parseFloat(document.getElementById('upd-height').value);
   const note=document.getElementById('upd-note').value.trim();
   const prev=document.getElementById('upd-photo-preview');
@@ -300,16 +287,19 @@ async function submitUpdate(){
   const tree=trees.find(t=>t.id===currentTreeId);if(!tree)return;
   const newU={date:new Date().toISOString().split('T')[0],height:h,note,photo};
   try{
-    await window._f.updateDoc(window._f.doc(window._db,'trees',currentTreeId),{updates:[...(tree.updates||[]),newU]});
-    showToast('📏 성장 기록이 추가되었습니다!');tree.updates=[...(tree.updates||[]),newU];renderDetail(currentTreeId);
+    await updateDoc(doc(db,'trees',currentTreeId),{updates:[...(tree.updates||[]),newU]});
+    showToast('📏 성장 기록이 추가되었습니다!');
+    tree.updates=[...(tree.updates||[]),newU];window.renderDetail(currentTreeId);
   }catch(e){console.error(e);showToast('❌ 저장 중 오류가 발생했어요');}
-}
-function previewPhoto(input,prevId,phId){
+};
+
+window.previewPhoto=function(input,prevId,phId){
   const file=input.files[0];if(!file)return;
   const reader=new FileReader();
   reader.onload=(e)=>{const prev=document.getElementById(prevId);if(prev){prev.src=e.target.result;prev.style.display='block';}const ph=document.getElementById(phId);if(ph)ph.style.display='none';};
   reader.readAsDataURL(file);
-}
+};
+
 function fmtDate(d){if(!d)return'';const dt=new Date(d);return`${dt.getFullYear()}년 ${dt.getMonth()+1}월 ${dt.getDate()}일`;}
 let toastTimer;
 function showToast(msg){
@@ -319,8 +309,5 @@ function showToast(msg){
   toastTimer=setTimeout(()=>{if(el)el.style.display='none';},2500);
 }
 </script>
-
-<!-- 카카오맵 마지막에 로드 (onload 콜백) -->
-<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=6380f2448eaa129dd7346aee4544b1e5&onload=initMap"></script>
 </body>
 </html>
